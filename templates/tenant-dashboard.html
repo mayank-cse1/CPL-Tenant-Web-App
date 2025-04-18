@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant Registration</title>
+</head>
+<body>
+    <h1>Tenant Registration</h1>
+    <form id="tenantRegistrationForm">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <label for="flatId">Flat ID:</label>
+        <input type="text" id="flatId" name="flatId" required><br><br>
+
+        <label for="name">Tenant Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <button type="submit">Register Tenant</button>
+    </form>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAL4-kSI4h3AB9Qvn87lapMpEw49tfW9EY",
+            authDomain: "cpl-mobile-app-8ccba.firebaseapp.com",
+            projectId: "cpl-mobile-app-8ccba",
+            storageBucket: "cpl-mobile-app-8ccba.firebasestorage.app",
+            messagingSenderId: "239513971376",
+            appId: "1:239513971376:web:4586aa7b6f930ad5a7a975"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Ensure only admins can access the page
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const email = user.email;
+                const rolesRef = collection(db, 'roles');
+                const q = query(rolesRef, where('userId', '==', email));
+
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty || querySnapshot.docs[0].data().role !== 'admin') {
+                    alert('You are not authorized to access this page.');
+                    window.location.href = '/login'; // Redirect to login page if not admin
+                }
+            } else {
+                alert('Please log in first.');
+                window.location.href = '/login'; // Redirect to login page if not logged in
+            }
+        });
+
+        // Handle tenant registration form submission
+        document.getElementById('tenantRegistrationForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const flatId = document.getElementById('flatId').value;
+            const name = document.getElementById('name').value;
+
+            try {
+                // Add tenant to Firestore
+                const tenantRef = collection(db, 'tenants');
+                await addDoc(tenantRef, {
+                    email: email,
+                    flatId: flatId,
+                    name: name,
+                    paymentHistory: [],
+                    tenantId: email // You can use email as tenantId or generate a unique ID
+                });
+
+                alert('Tenant registered successfully!');
+                window.location.href = '/admin'; // Redirect to admin portal after registration
+            } catch (error) {
+                console.error("Error adding tenant:", error);
+                alert('Error registering tenant.');
+            }
+        });
+    </script>
+</body>
+</html>

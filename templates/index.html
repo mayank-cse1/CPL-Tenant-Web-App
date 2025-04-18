@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+</head>
+<body>
+    <h1>Login</h1>
+    <form id="loginForm">
+        <input type="email" id="email" placeholder="Email" required><br>
+        <input type="password" id="password" placeholder="Password" required><br>
+        <button type="submit">Login</button>
+    </form>
+
+    <br>
+    <button id="registerBtn">Register</button> <!-- Register button -->
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js"; // Import Firestore functions
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAL4-kSI4h3AB9Qvn87lapMpEw49tfW9EY",
+            authDomain: "cpl-mobile-app-8ccba.firebaseapp.com",
+            projectId: "cpl-mobile-app-8ccba",
+            storageBucket: "cpl-mobile-app-8ccba.firebasestorage.app",
+            messagingSenderId: "239513971376",
+            appId: "1:239513971376:web:4586aa7b6f930ad5a7a975"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app); // Initialize Firestore
+
+        // Handle login
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Ensure email and password are correctly retrieved as strings
+            const email = document.getElementById('email').value.trim();  // .trim() removes any leading/trailing spaces
+            const password = document.getElementById('password').value.trim();
+
+            // Check if email and password are valid strings
+            if (email === "" || password === "") {
+                alert("Email and password are required.");
+                return;
+            }
+
+            // Sign in with Firebase Authentication
+            signInWithEmailAndPassword(auth, email, password)
+                .then(async (userCredential) => {
+                    const user = userCredential.user;
+
+                    // Query the 'roles' collection to check the user's role
+                    const rolesRef = collection(db, 'roles');
+                    const q = query(rolesRef, where('userId', '==', email));  // Query by userId (email in your case)
+                    const querySnapshot = await getDocs(q);
+
+                    if (!querySnapshot.empty) {
+                        const userRole = querySnapshot.docs[0].data().role;  // Access the 'role' field
+                        if (userRole === 'admin') {
+                            alert('Successful admin login');
+                            window.location.href = '/admin'; // Redirect to admin portal
+                        } else if (userRole === 'tenant') {
+                            alert('Successful tenant login');
+                            window.location.href = '/tenant'; // Redirect to tenant dashboard
+                        } else {
+                            alert('Unknown role');
+                            window.location.href = '/login'; // Redirect to login page if role is unknown
+                        }
+                    } else {
+                        alert('Role not found.');
+                        window.location.href = '/login'; // Redirect to login page if no role found
+                    }
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    alert('Error: ' + errorMessage);
+                });
+        });
+
+        // Handle register button click
+        document.getElementById('registerBtn').addEventListener('click', function() {
+            window.location.href = '/reg'; // Redirect to register page
+        });
+    </script>
+</body>
+</html>

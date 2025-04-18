@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal</title>
+</head>
+<body>
+    <h1>Admin Portal</h1>
+    <div id="blocksList"></div> <!-- List of blocks owned by the landlord -->
+    <div id="flatsList"></div> <!-- List of blocks owned by the landlord -->
+    <button id="registerTenantBtn">Register New Tenant</button>
+
+    <button id="logoutBtn">Logout</button>
+    <button id="all">All</button>
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAL4-kSI4h3AB9Qvn87lapMpEw49tfW9EY",
+            authDomain: "cpl-mobile-app-8ccba.firebaseapp.com",
+            projectId: "cpl-mobile-app-8ccba",
+            storageBucket: "cpl-mobile-app-8ccba.firebasestorage.app",
+            messagingSenderId: "239513971376",
+            appId: "1:239513971376:web:4586aa7b6f930ad5a7a975"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Check if the user is logged in and has the 'admin' role
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const email = user.email;  // Get the logged-in user's email
+
+                try {
+                    // Query the 'roles' collection to check the user's role
+                    const rolesRef = collection(db, 'roles');
+                    const q = query(rolesRef, where('userId', '==', email));  // Query by userId (email)
+                    const querySnapshot = await getDocs(q);
+
+                    if (!querySnapshot.empty) {
+                        const userRole = querySnapshot.docs[0].data().role;  // Access the 'role' field
+                        if (userRole === 'admin') {
+                            // Load admin content
+                            loadAdminPortal();
+                        } else {
+                            alert('You are not authorized to access this page.');
+                            window.location.href = '/login'; // Redirect to login page if not admin
+                        }
+                    } else {
+                        alert('Role not found.');
+                        window.location.href = '/login'; // Redirect to login page if no role found
+                    }
+                } catch (error) {
+                    console.error("Error fetching role:", error);
+                    alert('Error checking role.');
+                    window.location.href = '/login'; // Redirect to login page on error
+                }
+            } else {
+                alert('Please log in first.');
+                window.location.href = '/login'; // Redirect to login page if not logged in
+            }
+        });
+        // Function to show flats in a block
+        async function showFlats(blockId) {
+            console.log(`showFlats triggered for blockId: ${blockId}`);
+
+            const flatsListDiv = document.getElementById('flatsList');
+            flatsListDiv.innerHTML = ''; // Clear previous flats
+            try {
+                const flatsRef = query(collection(db, 'flats'), where('blockId', '==', blockId));
+                const flatsSnapshot = await getDocs(flatsRef);
+                flatsSnapshot.forEach((doc) => {
+                    const flatData = doc.data();
+                    const flatDiv = document.createElement('div');
+                    flatDiv.innerHTML = `
+                        <h4>Flat ID: ${flatData.flatId}</h4>
+                        <p>Status: ${flatData.status}</p>
+                        <p>Rent: ₹${flatData.rent}</p>
+                        <p>Water Bill: ₹${flatData.waterBill}</p>
+                        <p>Electricity Bill: ₹${flatData.electricityBill}</p>
+                    `;
+                    flatsListDiv.appendChild(flatDiv);
+                });
+            } catch (error) {
+                console.error("Error fetching flats:", error);
+                alert('Error loading flats.');
+            }
+        }
+        async function showBlocksAndFlats() {
+            const blocksSnapshot = await getDocs(collection(db, 'blocks'));
+
+            blocksSnapshot.forEach(async (blockDoc) => {
+                const blockData = blockDoc.data();
+                console.log(`Block: ${blockData.name}, Location: ${blockData.location}`);
+
+                // Fetch flats for this block
+                const flatsRef = query(collection(db, 'flats'), where('blockId', '==', blockData.blockId));
+                const flatsSnapshot = await getDocs(flatsRef);
+
+                flatsSnapshot.forEach((flatDoc) => {
+                    const flatData = flatDoc.data();
+                    console.log(`Flat ID: ${flatData.flatId}, Status: ${flatData.status}`);
+                });
+            });
+        }
+
+        // Function to load the admin portal content
+        async function loadAdminPortal() {
+            const blocksListDiv = document.getElementById('blocksList');
+            try {
+                const blocksRef = collection(db, 'blocks');
+                const blocksSnapshot = await getDocs(blocksRef);
+                blocksSnapshot.forEach((doc) => {
+                    const blockData = doc.data();
+                    const blockDiv = document.createElement('div');
+                    blockDiv.innerHTML = `
+                        <h3>${blockData.name} - ${blockData.location}</h3>
+                    `;
+                    const button = document.createElement('button');
+                    button.textContent = 'View Flats';
+                    button.addEventListener('click', () => showFlats(blockData.blockId));
+                    blockDiv.appendChild(button);
+                    blocksListDiv.appendChild(blockDiv);
+                });
+            } catch (error) {
+                console.error("Error fetching blocks:", error);
+                alert('Error loading blocks.');
+            }
+        }
+    
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            signOut(auth).then(() => {
+                window.location.href = '/index'; // Redirect to login page after logout
+            }).catch((error) => {
+                alert('Error logging out: ' + error.message);
+            });
+        });
+        document.getElementById('all').addEventListener('click', function() {
+            showBlocksAndFlats();
+        });
+        document.getElementById('registerTenantBtn').addEventListener('click', () => {
+            window.location.href = '/tenantRegistration'; // Redirect to tenant registration page
+        });
+    </script>
+    
+</body>
+</html>

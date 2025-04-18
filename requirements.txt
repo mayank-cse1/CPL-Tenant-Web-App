@@ -1,0 +1,6 @@
+firebase-admin
+flask 
+flask-wtf 
+firebase-admin
+Werkzeug==2.2.2
+flask-jwt-extended

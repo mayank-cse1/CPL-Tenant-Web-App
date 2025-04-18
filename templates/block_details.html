@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Block Details</title>
+</head>
+<body>
+    <h1>Block: {{ block_id }}</h1>
+    <h2>Flats</h2>
+    <ul>
+        {% for flat_id, flat in flats.items() %}
+        <li style="color: {{ 'green' if flat['status'] == 'occupied' else 'red' }}">
+            {{ flat_id }} - Rent: {{ flat['rent'] }}
+        </li>
+        {% endfor %}
+    </ul>
+    <a href="/admin">Back</a>
+</body>
+</html>
